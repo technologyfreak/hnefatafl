@@ -27,14 +27,12 @@ type Square struct {
 	PieceColor raylib.Color
 	BandColor  raylib.Color
 
-	Radius int32
-	Size   int32
-	X      int32
-	Y      int32
+	X int32
+	Y int32
 }
 
-func NewSquare(bgColor raylib.Color, x int32, y int32) Square {
-	return Square{None, false, bgColor, raylib.Blank, raylib.Blank, pieceRadius, squareSize, x, y}
+func NewSquare(bgColor raylib.Color, bandColor raylib.Color, x int32, y int32) Square {
+	return Square{None, false, bgColor, raylib.Blank, bandColor, x, y}
 }
 
 func (s *Square) AddPiece(piece PieceKind, pieceColor raylib.Color, bandColor raylib.Color) {
@@ -42,6 +40,13 @@ func (s *Square) AddPiece(piece PieceKind, pieceColor raylib.Color, bandColor ra
 	s.Piece = piece
 	s.PieceColor = pieceColor
 	s.BandColor = bandColor
+}
+
+func (s *Square) RemovePiece() {
+	s.HasPiece = false
+	s.Piece = None
+	s.PieceColor = raylib.Blank
+	s.BandColor = raylib.Blank
 }
 
 type Board struct {
@@ -60,8 +65,7 @@ func NewBoard() Board {
 				toggle = raylib.Beige
 			}
 
-			b.Squares[i][j] = NewSquare(toggle, i*squareSize, j*squareSize)
-			b.Squares[i][j].BandColor = toggle
+			b.Squares[i][j] = NewSquare(toggle, toggle, i*squareSize, j*squareSize)
 		}
 	}
 
@@ -100,9 +104,10 @@ type Game struct {
 	ScreenWidth  int32
 	ScreenHeight int32
 
-	Win        bool
-	FirstTurn  bool
-	FirstClick bool
+	MovePhase uint8
+
+	Win       bool
+	FirstTurn bool
 
 	GameBoard Board
 
@@ -117,9 +122,10 @@ func (g *Game) Init() {
 	g.ScreenHeight = squareSize*squaresPerRow + 1
 	g.FrameCounter = 0
 
+	g.MovePhase = 0
+
 	g.Win = false
 	g.FirstTurn = true
-	g.FirstClick = true
 
 	g.GameBoard = NewBoard()
 
@@ -127,7 +133,12 @@ func (g *Game) Init() {
 }
 
 func (g *Game) SelectSquare() {
-	g.PrevSelected = g.Selected
+	if g.MovePhase == 0 {
+		g.Selected = nil
+		g.PrevSelected = nil
+	} else {
+		g.PrevSelected = g.Selected
+	}
 
 	x := raylib.GetMouseX()
 	y := raylib.GetMouseY()
@@ -147,8 +158,14 @@ func (g *Game) SelectSquare() {
 
 	if row < squaresPerRow &&
 		col < squaresPerRow &&
-		row > -1 && col > -1 {
+		row > -1 &&
+		col > -1 {
 		g.Selected = &g.GameBoard.Squares[row][col]
+		g.MovePhase++
+
+		if g.MovePhase == 2 && g.Selected.Piece != None {
+			g.MovePhase--
+		}
 	} else {
 		g.Selected = nil
 	}
@@ -157,6 +174,15 @@ func (g *Game) SelectSquare() {
 func (g *Game) Update() {
 	if raylib.IsMouseButtonPressed(raylib.MouseLeftButton) {
 		g.SelectSquare()
+
+		// Swap piece to no location
+		if g.MovePhase == 2 &&
+			g.Selected != nil &&
+			g.PrevSelected != nil {
+			g.Selected.AddPiece(g.PrevSelected.Piece, g.PrevSelected.PieceColor, g.PrevSelected.BandColor)
+			g.PrevSelected.RemovePiece()
+			g.MovePhase++
+		}
 	}
 	g.FrameCounter++
 }
@@ -180,12 +206,13 @@ func (g *Game) Draw() {
 		g.FirstTurn = false
 	}
 
-	if g.Selected != nil {
-		raylib.DrawEllipseLines(g.Selected.X+pieceRadius, g.Selected.Y+pieceRadius, float32(pieceRadius), float32(pieceRadius), raylib.Green)
-
-		if g.PrevSelected != nil {
-			raylib.DrawEllipseLines(g.PrevSelected.X+pieceRadius, g.PrevSelected.Y+pieceRadius, float32(pieceRadius), float32(pieceRadius), g.PrevSelected.BandColor)
-		}
+	if g.MovePhase == 3 &&
+		g.PrevSelected != nil &&
+		g.Selected != nil {
+		raylib.DrawRectangle(g.PrevSelected.X, g.PrevSelected.Y, squareSize, squareSize, g.PrevSelected.BgColor)
+		raylib.DrawCircle(g.Selected.X+pieceRadius, g.Selected.Y+pieceRadius, float32(pieceRadius), g.Selected.PieceColor)
+		raylib.DrawEllipseLines(g.Selected.X+pieceRadius, g.Selected.Y+pieceRadius, float32(pieceRadius), float32(pieceRadius), g.Selected.BandColor)
+		g.MovePhase = 0
 	}
 
 	raylib.EndDrawing()
