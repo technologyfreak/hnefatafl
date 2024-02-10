@@ -10,6 +10,17 @@ const (
 	pieceRadius   = squareSize / 2
 )
 
+func toRowOrCol(i int32) int32 {
+	i -= i % squareSize
+	i %= squaresPerRow
+
+	if i != 0 {
+		i = squaresPerRow - i
+	}
+
+	return i
+}
+
 type PieceKind int8
 
 const (
@@ -21,8 +32,6 @@ const (
 type Square struct {
 	Piece PieceKind
 
-	HasPiece bool
-
 	BgColor    raylib.Color
 	PieceColor raylib.Color
 	BandColor  raylib.Color
@@ -32,21 +41,39 @@ type Square struct {
 }
 
 func NewSquare(bgColor raylib.Color, bandColor raylib.Color, x int32, y int32) Square {
-	return Square{None, false, bgColor, raylib.Blank, bandColor, x, y}
+	return Square{None, bgColor, raylib.Blank, bandColor, x, y}
 }
 
 func (s *Square) AddPiece(piece PieceKind, pieceColor raylib.Color, bandColor raylib.Color) {
-	s.HasPiece = true
 	s.Piece = piece
 	s.PieceColor = pieceColor
 	s.BandColor = bandColor
 }
 
 func (s *Square) RemovePiece() {
-	s.HasPiece = false
 	s.Piece = None
 	s.PieceColor = raylib.Blank
 	s.BandColor = raylib.Blank
+}
+
+func (s *Square) HasPiece() bool {
+	return s.Piece != None
+}
+
+func (s1 *Square) IsWestOf(s2 *Square) bool {
+	return (s1.X - s2.X) < 0
+}
+
+func (s1 *Square) IsEastOf(s2 *Square) bool {
+	return (s1.X - s2.X) > 0
+}
+
+func (s1 *Square) IsNorthOf(s2 *Square) bool {
+	return (s1.Y - s2.Y) < 0
+}
+
+func (s1 *Square) IsSouthOf(s2 *Square) bool {
+	return (s1.Y - s2.Y) > 0
 }
 
 type Board struct {
@@ -57,24 +84,24 @@ func NewBoard() Board {
 	var b Board
 	var toggle raylib.Color = raylib.Beige
 
-	for i := int32(0); i < squaresPerRow; i++ {
-		for j := int32(0); j < squaresPerRow; j++ {
+	for row := int32(0); row < squaresPerRow; row++ {
+		for col := int32(0); col < squaresPerRow; col++ {
 			if toggle == raylib.Beige {
 				toggle = raylib.Brown
 			} else {
 				toggle = raylib.Beige
 			}
 
-			b.Squares[i][j] = NewSquare(toggle, toggle, i*squareSize, j*squareSize)
+			b.Squares[row][col] = NewSquare(toggle, toggle, row*squareSize, col*squareSize)
 		}
 	}
 
 	// Black Pieces
-	for i := 3; i < 8; i++ {
-		b.Squares[i][0].AddPiece(Pawn, raylib.Black, raylib.White)
-		b.Squares[0][i].AddPiece(Pawn, raylib.Black, raylib.White)
-		b.Squares[i][squaresPerRow-1].AddPiece(Pawn, raylib.Black, raylib.White)
-		b.Squares[squaresPerRow-1][i].AddPiece(Pawn, raylib.Black, raylib.White)
+	for row := 3; row < 8; row++ {
+		b.Squares[row][0].AddPiece(Pawn, raylib.Black, raylib.White)
+		b.Squares[0][row].AddPiece(Pawn, raylib.Black, raylib.White)
+		b.Squares[row][squaresPerRow-1].AddPiece(Pawn, raylib.Black, raylib.White)
+		b.Squares[squaresPerRow-1][row].AddPiece(Pawn, raylib.Black, raylib.White)
 
 	}
 
@@ -84,9 +111,9 @@ func NewBoard() Board {
 	b.Squares[squaresPerRow-2][5].AddPiece(Pawn, raylib.Black, raylib.White)
 
 	// White Pieces
-	for i := 4; i < 7; i++ {
-		for j := 4; j < 7; j++ {
-			b.Squares[i][j].AddPiece(Pawn, raylib.White, raylib.Black)
+	for row := 4; row < 7; row++ {
+		for col := 4; col < 7; col++ {
+			b.Squares[row][col].AddPiece(Pawn, raylib.White, raylib.Black)
 		}
 	}
 
@@ -140,21 +167,11 @@ func (g *Game) SelectSquare() {
 		g.PrevSelected = g.Selected
 	}
 
-	x := raylib.GetMouseX()
-	y := raylib.GetMouseY()
-	x -= x % squareSize
-	y -= y % squareSize
+	row := raylib.GetMouseX()
+	col := raylib.GetMouseY()
 
-	row := x % squaresPerRow
-	col := y % squaresPerRow
-
-	if row != 0 {
-		row = squaresPerRow - row
-	}
-
-	if col != 0 {
-		col = squaresPerRow - col
-	}
+	row = toRowOrCol(row)
+	col = toRowOrCol(col)
 
 	if row < squaresPerRow &&
 		col < squaresPerRow &&
@@ -162,23 +179,147 @@ func (g *Game) SelectSquare() {
 		col > -1 {
 		g.Selected = &g.GameBoard.Squares[row][col]
 		g.MovePhase++
+	}
+}
 
-		if g.MovePhase == 2 && g.Selected.Piece != None {
-			g.MovePhase--
+func (g *Game) TryMoveWest(wPiece *Square, blank *Square) int32 {
+	if blank.IsWestOf(wPiece) &&
+		wPiece.Y == blank.Y {
+
+		x := wPiece.X - squareSize
+		col := wPiece.Y
+
+		col = toRowOrCol(col)
+
+		for x > blank.X && x > 0 {
+			selected := &g.GameBoard.Squares[toRowOrCol(x)][col]
+
+			if selected.HasPiece() {
+				return -1
+			}
+
+			x -= squareSize
 		}
-	} else {
-		g.Selected = nil
+
+		g.MovePhase++
+		return 0
+	}
+
+	return -1
+}
+
+func (g *Game) TryMoveEast(wPiece *Square, blank *Square) int32 {
+	if blank.IsEastOf(wPiece) &&
+		wPiece.Y == blank.Y {
+
+		x := wPiece.X + squareSize
+		col := wPiece.Y
+
+		col = toRowOrCol(col)
+
+		for x < blank.X && toRowOrCol(x) < squaresPerRow {
+			selected := &g.GameBoard.Squares[toRowOrCol(x)][col]
+
+			if selected.HasPiece() {
+				return -1
+			}
+
+			x += squareSize
+		}
+
+		g.MovePhase++
+		return 0
+	}
+
+	return -1
+}
+
+func (g *Game) TryMoveNorth(wPiece *Square, blank *Square) int32 {
+	if blank.IsNorthOf(wPiece) &&
+		wPiece.X == blank.X {
+
+		y := wPiece.Y - squareSize
+		row := wPiece.X
+
+		row = toRowOrCol(row)
+
+		for y > blank.Y && y > 0 {
+			selected := &g.GameBoard.Squares[row][toRowOrCol(y)]
+
+			if selected.HasPiece() {
+				return -1
+			}
+
+			y -= squareSize
+		}
+
+		g.MovePhase++
+		return 0
+	}
+
+	return -1
+}
+
+func (g *Game) TryMoveSouth(wPiece *Square, blank *Square) int32 {
+	if blank.IsSouthOf(wPiece) &&
+		wPiece.X == blank.X {
+
+		y := wPiece.Y + squareSize
+		row := wPiece.X
+
+		row = toRowOrCol(row)
+
+		for y < blank.Y && toRowOrCol(y) < squaresPerRow {
+			selected := &g.GameBoard.Squares[row][toRowOrCol(y)]
+
+			if selected.HasPiece() {
+				return -1
+			}
+
+			y += squareSize
+		}
+
+		g.MovePhase++
+		return 0
+	}
+
+	return -1
+}
+
+func (g *Game) ValidateMove() {
+	if g.MovePhase == 1 {
+		if g.Selected.HasPiece() {
+			g.MovePhase++
+		} else {
+			g.MovePhase = 0
+		}
+	}
+
+	if g.MovePhase == 3 {
+		if !g.Selected.HasPiece() {
+			g.MovePhase++
+		} else {
+			g.MovePhase = 0
+		}
+	}
+
+	if g.MovePhase == 4 {
+		if g.TryMoveWest(g.PrevSelected, g.Selected) == -1 &&
+			g.TryMoveEast(g.PrevSelected, g.Selected) == -1 &&
+			g.TryMoveNorth(g.PrevSelected, g.Selected) == -1 &&
+			g.TryMoveSouth(g.PrevSelected, g.Selected) == -1 {
+			g.MovePhase = 0
+		}
 	}
 }
 
 func (g *Game) Update() {
 	if raylib.IsMouseButtonPressed(raylib.MouseLeftButton) {
 		g.SelectSquare()
+		g.ValidateMove()
 
 		// Swap piece to no location
-		if g.MovePhase == 2 &&
-			g.Selected != nil &&
-			g.PrevSelected != nil {
+		if g.MovePhase == 5 {
 			g.Selected.AddPiece(g.PrevSelected.Piece, g.PrevSelected.PieceColor, g.PrevSelected.BandColor)
 			g.PrevSelected.RemovePiece()
 			g.MovePhase++
@@ -196,7 +337,7 @@ func (g *Game) Draw() {
 
 				raylib.DrawRectangle(s.X, s.Y, squareSize, squareSize, s.BgColor)
 
-				if s.Piece != None {
+				if s.HasPiece() {
 					raylib.DrawCircle(s.X+pieceRadius, s.Y+pieceRadius, pieceRadius, s.PieceColor)
 					raylib.DrawEllipseLines(s.X+pieceRadius, s.Y+pieceRadius, float32(pieceRadius), float32(pieceRadius), s.BandColor)
 				}
@@ -206,12 +347,15 @@ func (g *Game) Draw() {
 		g.FirstTurn = false
 	}
 
-	if g.MovePhase == 3 &&
-		g.PrevSelected != nil &&
-		g.Selected != nil {
+	if g.MovePhase == 2 {
+		// TODO - Add back selected piece highlighting
+	}
+
+	if g.MovePhase == 6 {
 		raylib.DrawRectangle(g.PrevSelected.X, g.PrevSelected.Y, squareSize, squareSize, g.PrevSelected.BgColor)
 		raylib.DrawCircle(g.Selected.X+pieceRadius, g.Selected.Y+pieceRadius, float32(pieceRadius), g.Selected.PieceColor)
 		raylib.DrawEllipseLines(g.Selected.X+pieceRadius, g.Selected.Y+pieceRadius, float32(pieceRadius), float32(pieceRadius), g.Selected.BandColor)
+
 		g.MovePhase = 0
 	}
 
@@ -226,8 +370,8 @@ func main() {
 	raylib.SetTargetFPS(60)
 
 	for !raylib.WindowShouldClose() {
-		game.Draw()
 		game.Update()
+		game.Draw()
 	}
 
 	raylib.CloseWindow()
