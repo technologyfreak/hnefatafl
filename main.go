@@ -288,7 +288,8 @@ func (g *Game) TryMoveSouth(wPiece *Square, blank *Square) int32 {
 
 func (g *Game) ValidateMove() {
 	if g.MovePhase == 1 {
-		if g.Selected.HasPiece() {
+		if g.Selected.HasPiece() &&
+			g.Selected.PieceColor == g.Turn {
 			g.MovePhase++
 		} else {
 			g.MovePhase = 0
@@ -322,6 +323,13 @@ func (g *Game) Update() {
 		if g.MovePhase == 5 {
 			g.Selected.AddPiece(g.PrevSelected.Piece, g.PrevSelected.PieceColor, g.PrevSelected.BandColor)
 			g.PrevSelected.RemovePiece()
+
+			if g.Turn == raylib.Black {
+				g.Turn = raylib.White
+			} else {
+				g.Turn = raylib.Black
+			}
+
 			g.MovePhase++
 		}
 	}
