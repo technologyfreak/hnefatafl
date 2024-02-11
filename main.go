@@ -5,10 +5,30 @@ import (
 )
 
 const (
-	squaresPerRow = 11
-	squareSize    = 32
-	pieceRadius   = squareSize / 2
+	squaresPerRow   = 11
+	squareSize      = 32
+	pieceRadius     = squareSize / 2
+	totalBlackPawns = 24
+	totalWhitePawns = 12
 )
+
+func InRowRange(n int32) bool {
+	return n >= 0 && n < squaresPerRow
+}
+
+func IsKingsCorner(square *Square) bool {
+	x := toRowOrCol(square.X)
+	y := toRowOrCol(square.Y)
+
+	return (x == 0 && y == 0) ||
+		(x == 0 && y == 10) ||
+		(x == 10 && y == 0) ||
+		(x == 10 && y == 10)
+}
+
+func IsCenter(square *Square) bool {
+	return toRowOrCol(square.X) == 5 && toRowOrCol(square.Y) == 5
+}
 
 func toRowOrCol(i int32) int32 {
 	i -= i % squareSize
@@ -117,7 +137,7 @@ func NewBoard() Board {
 		}
 	}
 
-	b.Squares[5][5].AddPiece(King, raylib.Yellow, raylib.Black)
+	b.Squares[5][5].AddPiece(King, raylib.White, raylib.Black)
 	b.Squares[5][3].AddPiece(Pawn, raylib.White, raylib.Black)
 	b.Squares[3][5].AddPiece(Pawn, raylib.White, raylib.Black)
 	b.Squares[5][squaresPerRow-4].AddPiece(Pawn, raylib.White, raylib.Black)
@@ -131,7 +151,9 @@ type Game struct {
 	ScreenWidth  int32
 	ScreenHeight int32
 
-	MovePhase uint8
+	BlackPawns uint8
+	WhitePawns uint8
+	MovePhase  uint8
 
 	Win       bool
 	FirstTurn bool
@@ -149,6 +171,8 @@ func (g *Game) Init() {
 	g.ScreenHeight = squareSize*squaresPerRow + 1
 	g.FrameCounter = 0
 
+	g.BlackPawns = 0
+	g.WhitePawns = 0
 	g.MovePhase = 0
 
 	g.Win = false
@@ -173,10 +197,7 @@ func (g *Game) SelectSquare() {
 	row = toRowOrCol(row)
 	col = toRowOrCol(col)
 
-	if row < squaresPerRow &&
-		col < squaresPerRow &&
-		row > -1 &&
-		col > -1 {
+	if InRowRange(row) && InRowRange(col) {
 		g.Selected = &g.GameBoard.Squares[row][col]
 		g.MovePhase++
 	}
@@ -298,6 +319,11 @@ func (g *Game) ValidateMove() {
 
 	if g.MovePhase == 3 {
 		if !g.Selected.HasPiece() {
+			if (IsKingsCorner(g.Selected) || IsCenter(g.Selected)) &&
+				g.PrevSelected.Piece != King {
+				g.MovePhase = 0
+			}
+
 			g.MovePhase++
 		} else {
 			g.MovePhase = 0
@@ -314,12 +340,19 @@ func (g *Game) ValidateMove() {
 	}
 }
 
+func (g *Game) KingHasReachedACorner() bool {
+	return (g.GameBoard.Squares[0][0].Piece == King) ||
+		(g.GameBoard.Squares[0][10].Piece == King) ||
+		(g.GameBoard.Squares[10][0].Piece == King) ||
+		(g.GameBoard.Squares[10][10].Piece == King)
+}
+
 func (g *Game) Update() {
 	if raylib.IsMouseButtonPressed(raylib.MouseLeftButton) {
 		g.SelectSquare()
 		g.ValidateMove()
 
-		// Swap piece to no location
+		// Swap piece to new location
 		if g.MovePhase == 5 {
 			g.Selected.AddPiece(g.PrevSelected.Piece, g.PrevSelected.PieceColor, g.PrevSelected.BandColor)
 			g.PrevSelected.RemovePiece()
@@ -333,6 +366,11 @@ func (g *Game) Update() {
 			g.MovePhase++
 		}
 	}
+
+	if g.KingHasReachedACorner() {
+		g.Win = true
+	}
+
 	g.FrameCounter++
 }
 
@@ -348,6 +386,10 @@ func (g *Game) Draw() {
 				if s.HasPiece() {
 					raylib.DrawCircle(s.X+pieceRadius, s.Y+pieceRadius, pieceRadius, s.PieceColor)
 					raylib.DrawEllipseLines(s.X+pieceRadius, s.Y+pieceRadius, float32(pieceRadius), float32(pieceRadius), s.BandColor)
+
+					if s.Piece == King {
+						raylib.DrawCircle(s.X+pieceRadius, s.Y+pieceRadius, pieceRadius/2, raylib.Gold)
+					}
 				}
 			}
 		}
@@ -363,6 +405,10 @@ func (g *Game) Draw() {
 		raylib.DrawRectangle(g.PrevSelected.X, g.PrevSelected.Y, squareSize, squareSize, g.PrevSelected.BgColor)
 		raylib.DrawCircle(g.Selected.X+pieceRadius, g.Selected.Y+pieceRadius, float32(pieceRadius), g.Selected.PieceColor)
 		raylib.DrawEllipseLines(g.Selected.X+pieceRadius, g.Selected.Y+pieceRadius, float32(pieceRadius), float32(pieceRadius), g.Selected.BandColor)
+
+		if g.Selected.Piece == King {
+			raylib.DrawCircle(g.Selected.X+pieceRadius, g.Selected.Y+pieceRadius, pieceRadius/2, raylib.Gold)
+		}
 
 		g.MovePhase = 0
 	}
