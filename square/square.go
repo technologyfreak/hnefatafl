@@ -23,6 +23,11 @@ type Square struct {
 
 func ToRowOrCol(i int32) int32 {
 	i -= i % SquareSize
+
+	if i != 0 && i%SquaresPerRow == 0 {
+		return -1
+	}
+
 	i %= SquaresPerRow
 
 	if i != 0 {
