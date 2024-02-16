@@ -5,11 +5,6 @@ import (
 	game "github.com/technologyfreak/hnefatafl/game"
 )
 
-const (
-	totalBlackPawns = 24
-	totalWhitePawns = 12
-)
-
 func main() {
 	game := game.Game{}
 	game.Init()
