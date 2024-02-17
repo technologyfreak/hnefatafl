@@ -2,7 +2,6 @@ package game
 
 import (
 	"fmt"
-	"time"
 
 	queue "github.com/eapache/queue/v2"
 	raylib "github.com/gen2brain/raylib-go/raylib"
@@ -16,7 +15,7 @@ const (
 	totalWhitePawns = 12
 	fontSize        = 30
 	targetFPS       = 60
-	msgFadeTimeout  = 2
+	msgFadeTimeout  = 3
 )
 
 type NeigborKind uint8
@@ -34,7 +33,6 @@ type CoordPair struct {
 }
 
 type Game struct {
-	FrameCounter int32
 	ScreenWidth  int32
 	ScreenHeight int32
 	MsgWidth     int32
@@ -58,7 +56,6 @@ type Game struct {
 }
 
 func (g *Game) Init() {
-	g.FrameCounter = 0
 	g.ScreenWidth = square.SquareSize*square.SquaresPerRow + 1
 	g.ScreenHeight = square.SquareSize*square.SquaresPerRow + 1
 
@@ -79,11 +76,6 @@ func (g *Game) Init() {
 	raylib.InitWindow(int32(g.ScreenWidth), int32(g.ScreenHeight), "Hnefatafl")
 	raylib.SetTargetFPS(targetFPS)
 
-	go func() {
-		time.Sleep(msgFadeTimeout * time.Second)
-		g.ShouldFade = true
-	}()
-
 	for !raylib.WindowShouldClose() {
 		g.Update()
 		g.Draw()
@@ -93,14 +85,26 @@ func (g *Game) Init() {
 	raylib.CloseWindow()
 }
 
+func (g *Game) StartFadeTimer() {
+	initTime := raylib.GetTime()
+	go func() {
+		for {
+			if raylib.GetTime()-initTime >= msgFadeTimeout {
+				g.ShouldFade = true
+				break
+			}
+		}
+	}()
+}
+
 func (g *Game) SelectSquare() {
 	if g.MovePhase == 0 {
 		g.Selected = nil
 		g.PrevSelected = nil
-		go func() {
-			time.Sleep(msgFadeTimeout * time.Second)
-			g.ShouldFade = true
-		}()
+
+		if !g.FirstTurn {
+			g.StartFadeTimer()
+		}
 	} else {
 		g.ShouldFade = false
 		g.PrevSelected = g.Selected
@@ -472,6 +476,10 @@ func (g *Game) UpdateSouthernNeighbor() {
 }
 
 func (g *Game) Update() {
+	if g.FirstTurn {
+		g.StartFadeTimer()
+	}
+
 	if raylib.IsMouseButtonPressed(raylib.MouseLeftButton) {
 		g.SelectSquare()
 		g.ValidateMove()
@@ -499,8 +507,6 @@ func (g *Game) Update() {
 	if g.KingHasReachedACorner() {
 		g.Win = true
 	}
-
-	g.FrameCounter++
 }
 
 func (g *Game) DrawWholeBoard() {
