@@ -1,6 +1,9 @@
 package game
 
 import (
+	"fmt"
+	"time"
+
 	queue "github.com/eapache/queue/v2"
 	raylib "github.com/gen2brain/raylib-go/raylib"
 	board "github.com/technologyfreak/hnefatafl/board"
@@ -11,6 +14,9 @@ import (
 const (
 	totalBlackPawns = 24
 	totalWhitePawns = 12
+	fontSize        = 30
+	targetFPS       = 60
+	msgFadeTimeout  = 2
 )
 
 type NeigborKind uint8
@@ -29,16 +35,17 @@ type CoordPair struct {
 
 type Game struct {
 	FrameCounter int32
-	FrameTarget  int32
 	ScreenWidth  int32
 	ScreenHeight int32
+	MsgWidth     int32
 
 	BlackPawns uint8
 	WhitePawns uint8
 	MovePhase  uint8
 
-	Win       bool
-	FirstTurn bool
+	Win        bool
+	FirstTurn  bool
+	ShouldFade bool
 
 	Board board.Board
 
@@ -51,17 +58,17 @@ type Game struct {
 }
 
 func (g *Game) Init() {
-	g.FrameTarget = 60
 	g.FrameCounter = 0
 	g.ScreenWidth = square.SquareSize*square.SquaresPerRow + 1
 	g.ScreenHeight = square.SquareSize*square.SquaresPerRow + 1
 
-	g.BlackPawns = 0
-	g.WhitePawns = 0
+	g.BlackPawns = totalBlackPawns
+	g.WhitePawns = totalWhitePawns
 	g.MovePhase = 0
 
 	g.Win = false
 	g.FirstTurn = true
+	g.ShouldFade = false
 
 	g.Board = board.NewBoard()
 
@@ -70,11 +77,17 @@ func (g *Game) Init() {
 	g.ReDraw = queue.New[*square.Square]()
 
 	raylib.InitWindow(int32(g.ScreenWidth), int32(g.ScreenHeight), "Hnefatafl")
-	raylib.SetTargetFPS(g.FrameTarget)
+	raylib.SetTargetFPS(targetFPS)
+
+	go func() {
+		time.Sleep(msgFadeTimeout * time.Second)
+		g.ShouldFade = true
+	}()
 
 	for !raylib.WindowShouldClose() {
 		g.Update()
 		g.Draw()
+		g.FirstTurn = false
 	}
 
 	raylib.CloseWindow()
@@ -84,7 +97,12 @@ func (g *Game) SelectSquare() {
 	if g.MovePhase == 0 {
 		g.Selected = nil
 		g.PrevSelected = nil
+		go func() {
+			time.Sleep(msgFadeTimeout * time.Second)
+			g.ShouldFade = true
+		}()
 	} else {
+		g.ShouldFade = false
 		g.PrevSelected = g.Selected
 	}
 
@@ -521,11 +539,41 @@ func (g *Game) DrawUpdatedSquares() {
 	}
 }
 
+func (g *Game) DrawTurnMsg() {
+	turnMsg := "Black"
+
+	if g.Turn != raylib.Black {
+		turnMsg = "White"
+	}
+
+	turnMsg = fmt.Sprintf("%v's Turn", turnMsg)
+	msgWidth := raylib.MeasureText(turnMsg, fontSize)
+	msgX := g.ScreenWidth/2 - msgWidth/2
+	msgY := int32(raylib.GetScreenHeight()) - fontSize*2
+
+	raylib.DrawRectangleGradientV(msgX, msgY, msgWidth+2, fontSize+2, raylib.Yellow, raylib.Orange)
+	raylib.DrawText(turnMsg, msgX+1, msgY+1, fontSize, raylib.RayWhite)
+	raylib.DrawText(turnMsg, msgX-1, msgY-1, fontSize, raylib.RayWhite)
+	raylib.DrawText(turnMsg, msgX, msgY, fontSize, raylib.Blue)
+}
+
 func (g *Game) Draw() {
 	raylib.BeginDrawing()
 	if g.FirstTurn {
 		g.DrawWholeBoard()
-		g.FirstTurn = false
+		g.DrawTurnMsg()
+	}
+
+	if g.MovePhase == 0 {
+		if g.PrevSelected != nil {
+			raylib.DrawEllipseLines(g.PrevSelected.X+piece.PieceRadius, g.PrevSelected.Y+piece.PieceRadius, float32(piece.PieceRadius), float32(piece.PieceRadius), g.PrevSelected.BandColor)
+		}
+
+		if !g.ShouldFade {
+			g.DrawTurnMsg()
+		} else {
+			g.DrawWholeBoard()
+		}
 	}
 
 	if g.MovePhase == 2 {
