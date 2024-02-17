@@ -529,7 +529,7 @@ func (g *Game) Draw() {
 	}
 
 	if g.MovePhase == 2 {
-		// TODO - Add back selected piece highlighting
+		raylib.DrawEllipseLines(g.Selected.X+piece.PieceRadius, g.Selected.Y+piece.PieceRadius, float32(piece.PieceRadius), float32(piece.PieceRadius), raylib.Green)
 	}
 
 	if g.MovePhase == 6 {

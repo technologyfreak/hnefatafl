@@ -42,7 +42,7 @@ func InRowRange(n int32) bool {
 }
 
 func NewSquare(bgColor raylib.Color, bandColor raylib.Color, x int32, y int32) Square {
-	return Square{piece.None, bgColor, raylib.Blank, bandColor, x, y}
+	return Square{Piece: piece.None, BgColor: bgColor, PieceColor: raylib.Blank, BandColor: bandColor, X: x, Y: y}
 }
 
 func (s *Square) AddPiece(piece piece.PieceKind, pieceColor raylib.Color, bandColor raylib.Color) {
