@@ -1,21 +1,20 @@
 package game
 
 import (
-	"fmt"
-
-	queue "github.com/eapache/queue/v2"
 	raylib "github.com/gen2brain/raylib-go/raylib"
 	board "github.com/technologyfreak/hnefatafl/board"
 	piece "github.com/technologyfreak/hnefatafl/piece"
+	"github.com/technologyfreak/hnefatafl/resources"
 	square "github.com/technologyfreak/hnefatafl/square"
 )
 
 const (
+	screenWidth     = square.SquareSize * square.SquaresPerRow
+	screenHeight    = screenWidth + square.SquareSize
 	totalBlackPawns = 24
 	totalWhitePawns = 12
-	fontSize        = 30
+	fontSize        = 25
 	targetFPS       = 60
-	msgFadeTimeout  = 3
 )
 
 type NeigborKind uint8
@@ -27,86 +26,100 @@ const (
 	Opposed
 )
 
+const (
+	BlacksTurnMsg = "Black's Turn"
+	WhitesTurnMsg = "Whites's Turn"
+)
+
 type CoordPair struct {
 	X int32
 	Y int32
 }
 
 type Game struct {
-	ScreenWidth  int32
-	ScreenHeight int32
-	MsgWidth     int32
+	ScreenWidth   int32
+	ScreenHeight  int32
+	vScreenHeight int32
+	MsgX          int32
+	MsgY          int32
 
 	BlackPawns uint8
 	WhitePawns uint8
 	MovePhase  uint8
 
-	Win        bool
-	FirstTurn  bool
-	ShouldFade bool
+	BlacksTurn              bool
+	ShouldHighlightSelected bool
+	Win                     bool
 
 	Board board.Board
-
-	Turn raylib.Color
 
 	Selected     *square.Square
 	PrevSelected *square.Square
 
-	ReDraw *queue.Queue[*square.Square]
+	BoardBackground raylib.Texture2D
+	BlackPawnSprite raylib.Texture2D
+	WhitePawnSprite raylib.Texture2D
+	KingSprite      raylib.Texture2D
 }
 
 func (g *Game) Init() {
-	g.ScreenWidth = square.SquareSize*square.SquaresPerRow + 1
-	g.ScreenHeight = square.SquareSize*square.SquaresPerRow + 1
+	g.ScreenWidth = screenWidth
+	g.ScreenHeight = screenHeight
+	g.vScreenHeight = screenWidth
 
 	g.BlackPawns = totalBlackPawns
 	g.WhitePawns = totalWhitePawns
 	g.MovePhase = 0
 
+	g.BlacksTurn = true
+	g.ShouldHighlightSelected = false
 	g.Win = false
-	g.FirstTurn = true
-	g.ShouldFade = false
 
 	g.Board = board.NewBoard()
 
-	g.Turn = raylib.Black
-
-	g.ReDraw = queue.New[*square.Square]()
-
 	raylib.InitWindow(int32(g.ScreenWidth), int32(g.ScreenHeight), "Hnefatafl")
+	defer raylib.CloseWindow()
+
+	raylib.ClearBackground(raylib.Beige)
+
+	g.MsgX = g.ScreenWidth/2 - raylib.MeasureText("XXXXX's Turn", fontSize)/2
+	g.MsgY = g.ScreenHeight - fontSize
+
+	img := raylib.LoadImageFromMemory(".png", resources.BoardBackground, int32(len(resources.BoardBackground)))
+	g.BoardBackground = raylib.LoadTextureFromImage(img)
+	raylib.UnloadImage(img)
+	defer raylib.UnloadTexture(g.BoardBackground)
+
+	img = raylib.LoadImageFromMemory(".png", resources.BlackPawnSprite, int32(len(resources.BlackPawnSprite)))
+	g.BlackPawnSprite = raylib.LoadTextureFromImage(img)
+	raylib.UnloadImage(img)
+	defer raylib.UnloadTexture(g.BlackPawnSprite)
+
+	img = raylib.LoadImageFromMemory(".png", resources.WhitePawnSprite, int32(len(resources.WhitePawnSprite)))
+	g.WhitePawnSprite = raylib.LoadTextureFromImage(img)
+	raylib.UnloadImage(img)
+	defer raylib.UnloadTexture(g.WhitePawnSprite)
+
+	img = raylib.LoadImageFromMemory(".png", resources.KingSprite, int32(len(resources.KingSprite)))
+	g.KingSprite = raylib.LoadTextureFromImage(img)
+	raylib.UnloadImage(img)
+	defer raylib.UnloadTexture(g.KingSprite)
+
 	raylib.SetTargetFPS(targetFPS)
 
 	for !raylib.WindowShouldClose() {
 		g.Update()
 		g.Draw()
-		g.FirstTurn = false
 	}
 
-	raylib.CloseWindow()
-}
-
-func (g *Game) StartFadeTimer() {
-	initTime := raylib.GetTime()
-	go func() {
-		for {
-			if raylib.GetTime()-initTime >= msgFadeTimeout {
-				g.ShouldFade = true
-				break
-			}
-		}
-	}()
 }
 
 func (g *Game) SelectSquare() {
 	if g.MovePhase == 0 {
 		g.Selected = nil
 		g.PrevSelected = nil
-
-		if !g.FirstTurn {
-			g.StartFadeTimer()
-		}
 	} else {
-		g.ShouldFade = false
+		g.ShouldHighlightSelected = false
 		g.PrevSelected = g.Selected
 	}
 
@@ -245,8 +258,9 @@ func (g *Game) TryMoveSouth(wPiece *square.Square, blank *square.Square) int32 {
 func (g *Game) ValidateMove() {
 	if g.MovePhase == 1 {
 		if g.Selected.HasPiece() &&
-			g.Selected.PieceColor == g.Turn {
+			((g.Selected.Piece&piece.BlackPawn == piece.BlackPawn && g.BlacksTurn) || (g.Selected.Piece&piece.WhitePawn == piece.WhitePawn && !g.BlacksTurn)) {
 			g.MovePhase++
+			g.ShouldHighlightSelected = true
 		} else {
 			g.MovePhase = 0
 		}
@@ -255,7 +269,7 @@ func (g *Game) ValidateMove() {
 	if g.MovePhase == 3 {
 		if !g.Selected.HasPiece() {
 			if (g.Selected.IsKingsCorner() || g.Selected.IsCenter()) &&
-				g.PrevSelected.Piece != piece.King {
+				g.PrevSelected.Piece&piece.King != piece.King {
 				g.MovePhase = 0
 			}
 
@@ -276,10 +290,10 @@ func (g *Game) ValidateMove() {
 }
 
 func (g *Game) KingHasReachedACorner() bool {
-	return (g.Board.Squares[0][0].Piece == piece.King) ||
-		(g.Board.Squares[0][10].Piece == piece.King) ||
-		(g.Board.Squares[10][0].Piece == piece.King) ||
-		(g.Board.Squares[10][10].Piece == piece.King)
+	return (g.Board.Squares[0][0].Piece&piece.King == piece.King) ||
+		(g.Board.Squares[0][10].Piece&piece.King == piece.King) ||
+		(g.Board.Squares[10][0].Piece&piece.King == piece.King) ||
+		(g.Board.Squares[10][10].Piece&piece.King == piece.King)
 }
 
 func (g *Game) GetWesternNeighbor(wPiece *square.Square) (NeigborKind, *square.Square) {
@@ -292,7 +306,7 @@ func (g *Game) GetWesternNeighbor(wPiece *square.Square) (NeigborKind, *square.S
 	if square.InRowRange(west.X) && square.InRowRange(west.Y) {
 		neigbor := &g.Board.Squares[west.X][west.Y]
 		if neigbor.HasPiece() {
-			if neigbor.PieceColor != wPiece.PieceColor {
+			if (neigbor.Piece & piece.BlackPawn) != (wPiece.Piece & piece.BlackPawn) {
 				return Opposed, neigbor
 			}
 		} else if neigbor.IsKingsCorner() {
@@ -315,7 +329,7 @@ func (g *Game) GetEasternNeighbor(wPiece *square.Square) (NeigborKind, *square.S
 	if square.InRowRange(east.X) && square.InRowRange(east.Y) {
 		neigbor := &g.Board.Squares[east.X][east.Y]
 		if neigbor.HasPiece() {
-			if neigbor.PieceColor != wPiece.PieceColor {
+			if (neigbor.Piece & piece.BlackPawn) != (wPiece.Piece & piece.BlackPawn) {
 				return Opposed, neigbor
 			}
 		} else if neigbor.IsKingsCorner() {
@@ -338,7 +352,7 @@ func (g *Game) GetNortherNeighbor(wPiece *square.Square) (NeigborKind, *square.S
 	if square.InRowRange(north.X) && square.InRowRange(north.Y) {
 		neigbor := &g.Board.Squares[north.X][north.Y]
 		if neigbor.HasPiece() {
-			if neigbor.PieceColor != wPiece.PieceColor {
+			if (neigbor.Piece & piece.BlackPawn) != (wPiece.Piece & piece.BlackPawn) {
 				return Opposed, neigbor
 			}
 		} else if neigbor.IsKingsCorner() {
@@ -361,7 +375,7 @@ func (g *Game) GetSouternNeighbor(wPiece *square.Square) (NeigborKind, *square.S
 	if square.InRowRange(south.X) && square.InRowRange(south.Y) {
 		neigbor := &g.Board.Squares[south.X][south.Y]
 		if neigbor.HasPiece() {
-			if neigbor.PieceColor != wPiece.PieceColor {
+			if (neigbor.Piece & piece.BlackPawn) != (wPiece.Piece & piece.BlackPawn) {
 				return Opposed, neigbor
 			}
 		} else if neigbor.IsKingsCorner() {
@@ -393,7 +407,7 @@ func (g *Game) IsSandwiched(wPiece *square.Square) bool {
 	hasNorth := northKind > 0
 	hasSouth := southKind > 0
 
-	if wPiece.Piece == piece.King {
+	if wPiece.Piece&piece.King == piece.King {
 		x := (hasWest || TryIsCenter(westPiece)) && (hasEast || TryIsCenter(eastPiece))
 		y := (hasNorth || TryIsCenter(northPiece)) && (hasSouth || TryIsCenter(southPiece))
 
@@ -411,16 +425,15 @@ func (g *Game) UpdateWesternNeighbor() {
 	westKind, westSquare := g.GetWesternNeighbor(g.Selected)
 
 	if westKind > 0 && g.IsSandwiched(westSquare) {
-		if westSquare.Piece == piece.King {
+		if westSquare.Piece&piece.King == piece.King {
 			g.Win = true
-		} else if westSquare.PieceColor == raylib.Black {
+		} else if westSquare.Piece&piece.BlackPawn == piece.BlackPawn {
 			g.BlackPawns--
 		} else {
 			g.WhitePawns--
 		}
 
 		westSquare.RemovePiece()
-		g.ReDraw.Add(westSquare)
 	}
 }
 
@@ -428,16 +441,15 @@ func (g *Game) UpdateEasternNeighbor() {
 	eastKind, eastSquare := g.GetEasternNeighbor(g.Selected)
 
 	if eastKind > 0 && g.IsSandwiched(eastSquare) {
-		if eastSquare.Piece == piece.King {
+		if eastSquare.Piece&piece.King == piece.King {
 			g.Win = true
-		} else if eastSquare.PieceColor == raylib.Black {
+		} else if eastSquare.Piece&piece.BlackPawn == piece.BlackPawn {
 			g.BlackPawns--
 		} else {
 			g.WhitePawns--
 		}
 
 		eastSquare.RemovePiece()
-		g.ReDraw.Add(eastSquare)
 	}
 }
 
@@ -445,16 +457,15 @@ func (g *Game) UpdateNorthernNeighbor() {
 	northKind, northSquare := g.GetNortherNeighbor(g.Selected)
 
 	if northKind > 0 && g.IsSandwiched(northSquare) {
-		if northSquare.Piece == piece.King {
+		if northSquare.Piece&piece.King == piece.King {
 			g.Win = true
-		} else if northSquare.PieceColor == raylib.Black {
+		} else if northSquare.Piece == piece.BlackPawn {
 			g.BlackPawns--
 		} else {
 			g.WhitePawns--
 		}
 
 		northSquare.RemovePiece()
-		g.ReDraw.Add(northSquare)
 	}
 }
 
@@ -462,31 +473,26 @@ func (g *Game) UpdateSouthernNeighbor() {
 	southKind, southSquare := g.GetSouternNeighbor(g.Selected)
 
 	if southKind > 0 && g.IsSandwiched(southSquare) {
-		if southSquare.Piece == piece.King {
+		if southSquare.Piece&piece.King == piece.King {
 			g.Win = true
-		} else if southSquare.PieceColor == raylib.Black {
+		} else if southSquare.Piece&piece.BlackPawn == piece.BlackPawn {
 			g.BlackPawns--
 		} else {
 			g.WhitePawns--
 		}
 
 		southSquare.RemovePiece()
-		g.ReDraw.Add(southSquare)
 	}
 }
 
 func (g *Game) Update() {
-	if g.FirstTurn {
-		g.StartFadeTimer()
-	}
-
 	if raylib.IsMouseButtonPressed(raylib.MouseLeftButton) {
 		g.SelectSquare()
 		g.ValidateMove()
 
 		if g.MovePhase == 5 {
 			// Swap piece to new location
-			g.Selected.AddPiece(g.PrevSelected.Piece, g.PrevSelected.PieceColor, g.PrevSelected.BandColor)
+			g.Selected.AddPiece(g.PrevSelected.Piece)
 			g.PrevSelected.RemovePiece()
 
 			g.UpdateWesternNeighbor()
@@ -494,13 +500,8 @@ func (g *Game) Update() {
 			g.UpdateNorthernNeighbor()
 			g.UpdateSouthernNeighbor()
 
-			if g.Turn == raylib.Black {
-				g.Turn = raylib.White
-			} else {
-				g.Turn = raylib.Black
-			}
-
-			g.MovePhase++
+			g.BlacksTurn = !g.BlacksTurn // toggle turn order
+			g.MovePhase = 0
 		}
 	}
 
@@ -509,87 +510,57 @@ func (g *Game) Update() {
 	}
 }
 
-func (g *Game) DrawWholeBoard() {
+func (g *Game) DrawPieces(wPiece *square.Square) {
+	switch {
+	case wPiece.Piece&piece.BlackPawn == piece.BlackPawn:
+		raylib.DrawTexture(g.BlackPawnSprite, wPiece.X, wPiece.Y, raylib.RayWhite)
+	case wPiece.Piece&piece.King == piece.King:
+		raylib.DrawTexture(g.KingSprite, wPiece.X, wPiece.Y, raylib.RayWhite)
+	case wPiece.Piece&piece.WhitePawn == piece.WhitePawn:
+		raylib.DrawTexture(g.WhitePawnSprite, wPiece.X, wPiece.Y, raylib.RayWhite)
+	}
+}
+
+func (g *Game) DrawBoard() {
+	raylib.DrawTexture(g.BoardBackground, 0, 0, raylib.RayWhite)
+
 	for i := 0; i < square.SquaresPerRow; i++ {
 		for j := 0; j < square.SquaresPerRow; j++ {
 			s := &g.Board.Squares[i][j]
 
-			raylib.DrawRectangle(s.X, s.Y, square.SquareSize, square.SquareSize, s.BgColor)
-
 			if s.HasPiece() {
-				raylib.DrawCircle(s.X+piece.PieceRadius, s.Y+piece.PieceRadius, piece.PieceRadius, s.PieceColor)
-				raylib.DrawEllipseLines(s.X+piece.PieceRadius, s.Y+piece.PieceRadius, float32(piece.PieceRadius), float32(piece.PieceRadius), s.BandColor)
-
-				if s.Piece == piece.King {
-					raylib.DrawCircle(s.X+piece.PieceRadius, s.Y+piece.PieceRadius, piece.PieceRadius/2, raylib.Gold)
-				}
+				g.DrawPieces(s)
 			}
 		}
 	}
 }
 
-func (g *Game) DrawUpdatedSquares() {
-	raylib.DrawRectangle(g.PrevSelected.X, g.PrevSelected.Y, square.SquareSize, square.SquareSize, g.PrevSelected.BgColor)
-	raylib.DrawCircle(g.Selected.X+piece.PieceRadius, g.Selected.Y+piece.PieceRadius, float32(piece.PieceRadius), g.Selected.PieceColor)
-	raylib.DrawEllipseLines(g.Selected.X+piece.PieceRadius, g.Selected.Y+piece.PieceRadius, float32(piece.PieceRadius), float32(piece.PieceRadius), g.Selected.BandColor)
-
-	for g.ReDraw.Length() > 0 {
-		tmp := g.ReDraw.Remove()
-		if tmp != nil {
-			raylib.DrawRectangle(tmp.X, tmp.Y, square.SquareSize, square.SquareSize, tmp.BgColor)
-		}
-	}
-
-	if g.Selected.Piece == piece.King {
-		raylib.DrawCircle(g.Selected.X+piece.PieceRadius, g.Selected.Y+piece.PieceRadius, piece.PieceRadius/2, raylib.Gold)
-	}
-}
-
 func (g *Game) DrawTurnMsg() {
-	turnMsg := "Black"
+	raylib.DrawRectangle(g.MsgX, g.MsgY, g.ScreenWidth, fontSize, raylib.Beige)
 
-	if g.Turn != raylib.Black {
-		turnMsg = "White"
+	turnMsg := BlacksTurnMsg
+
+	if !g.BlacksTurn {
+		turnMsg = WhitesTurnMsg
 	}
 
-	turnMsg = fmt.Sprintf("%v's Turn", turnMsg)
-	msgWidth := raylib.MeasureText(turnMsg, fontSize)
-	msgX := g.ScreenWidth/2 - msgWidth/2
-	msgY := int32(raylib.GetScreenHeight()) - fontSize*2
+	raylib.DrawText(turnMsg, g.MsgX+1, g.MsgY+1, fontSize, raylib.Gray)
+	raylib.DrawText(turnMsg, g.MsgX-1, g.MsgY-1, fontSize, raylib.Gray)
 
-	raylib.DrawRectangleGradientV(msgX, msgY, msgWidth+2, fontSize+2, raylib.Yellow, raylib.Orange)
-	raylib.DrawText(turnMsg, msgX+1, msgY+1, fontSize, raylib.RayWhite)
-	raylib.DrawText(turnMsg, msgX-1, msgY-1, fontSize, raylib.RayWhite)
-	raylib.DrawText(turnMsg, msgX, msgY, fontSize, raylib.Blue)
+	if !g.BlacksTurn {
+		raylib.DrawText(turnMsg, g.MsgX, g.MsgY, fontSize, raylib.White)
+	} else {
+		raylib.DrawText(turnMsg, g.MsgX, g.MsgY, fontSize, raylib.Black)
+	}
 }
 
 func (g *Game) Draw() {
 	raylib.BeginDrawing()
-	if g.FirstTurn {
-		g.DrawWholeBoard()
-		g.DrawTurnMsg()
+
+	g.DrawBoard()
+	if g.ShouldHighlightSelected {
+		raylib.DrawRectangleLinesEx(raylib.NewRectangle(float32(g.Selected.X), float32(g.Selected.Y), square.SquareSize, square.SquareSize), 1.5, raylib.Green)
 	}
-
-	if g.MovePhase == 0 {
-		if g.PrevSelected != nil {
-			raylib.DrawEllipseLines(g.PrevSelected.X+piece.PieceRadius, g.PrevSelected.Y+piece.PieceRadius, float32(piece.PieceRadius), float32(piece.PieceRadius), g.PrevSelected.BandColor)
-		}
-
-		if !g.ShouldFade {
-			g.DrawTurnMsg()
-		} else {
-			g.DrawWholeBoard()
-		}
-	}
-
-	if g.MovePhase == 2 {
-		raylib.DrawEllipseLines(g.Selected.X+piece.PieceRadius, g.Selected.Y+piece.PieceRadius, float32(piece.PieceRadius), float32(piece.PieceRadius), raylib.Green)
-	}
-
-	if g.MovePhase == 6 {
-		g.DrawUpdatedSquares()
-		g.MovePhase = 0
-	}
-
+	g.DrawTurnMsg()
 	raylib.EndDrawing()
 }

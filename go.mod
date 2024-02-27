@@ -5,7 +5,6 @@ go 1.21.6
 require github.com/gen2brain/raylib-go/raylib v0.0.0-20240125111008-83d871a38f28
 
 require (
-	github.com/eapache/queue/v2 v2.0.0-20230407133247-75960ed334e4
 	github.com/ebitengine/purego v0.6.0-alpha.1.0.20231122024802-192c5e846faa // indirect
 	golang.org/x/sys v0.14.0 // indirect
 )

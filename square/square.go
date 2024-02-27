@@ -13,10 +13,6 @@ const (
 type Square struct {
 	Piece piece.PieceKind
 
-	BgColor    raylib.Color
-	PieceColor raylib.Color
-	BandColor  raylib.Color
-
 	X int32
 	Y int32
 }
@@ -41,20 +37,16 @@ func InRowRange(n int32) bool {
 	return n >= 0 && n < SquaresPerRow
 }
 
-func NewSquare(bgColor raylib.Color, bandColor raylib.Color, x int32, y int32) Square {
-	return Square{Piece: piece.None, BgColor: bgColor, PieceColor: raylib.Blank, BandColor: bandColor, X: x, Y: y}
+func NewSquare(bandColor raylib.Color, x int32, y int32) Square {
+	return Square{Piece: piece.None, X: x, Y: y}
 }
 
-func (s *Square) AddPiece(piece piece.PieceKind, pieceColor raylib.Color, bandColor raylib.Color) {
+func (s *Square) AddPiece(piece piece.PieceKind) {
 	s.Piece = piece
-	s.PieceColor = pieceColor
-	s.BandColor = bandColor
 }
 
 func (s *Square) RemovePiece() {
 	s.Piece = piece.None
-	s.PieceColor = raylib.Blank
-	s.BandColor = raylib.Blank
 }
 
 func (s *Square) HasPiece() bool {

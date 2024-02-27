@@ -22,36 +22,36 @@ func NewBoard() Board {
 				toggle = raylib.Beige
 			}
 
-			b.Squares[row][col] = square.NewSquare(toggle, toggle, row*square.SquareSize, col*square.SquareSize)
+			b.Squares[row][col] = square.NewSquare(toggle, row*square.SquareSize, col*square.SquareSize)
 		}
 	}
 
 	// Black Pieces
 	for row := 3; row < 8; row++ {
-		b.Squares[row][0].AddPiece(piece.Pawn, raylib.Black, raylib.White)
-		b.Squares[0][row].AddPiece(piece.Pawn, raylib.Black, raylib.White)
-		b.Squares[row][square.SquaresPerRow-1].AddPiece(piece.Pawn, raylib.Black, raylib.White)
-		b.Squares[square.SquaresPerRow-1][row].AddPiece(piece.Pawn, raylib.Black, raylib.White)
+		b.Squares[row][0].AddPiece(piece.BlackPawn)
+		b.Squares[0][row].AddPiece(piece.BlackPawn)
+		b.Squares[row][square.SquaresPerRow-1].AddPiece(piece.BlackPawn)
+		b.Squares[square.SquaresPerRow-1][row].AddPiece(piece.BlackPawn)
 
 	}
 
-	b.Squares[5][1].AddPiece(piece.Pawn, raylib.Black, raylib.White)
-	b.Squares[1][5].AddPiece(piece.Pawn, raylib.Black, raylib.White)
-	b.Squares[5][square.SquaresPerRow-2].AddPiece(piece.Pawn, raylib.Black, raylib.White)
-	b.Squares[square.SquaresPerRow-2][5].AddPiece(piece.Pawn, raylib.Black, raylib.White)
+	b.Squares[5][1].AddPiece(piece.BlackPawn)
+	b.Squares[1][5].AddPiece(piece.BlackPawn)
+	b.Squares[5][square.SquaresPerRow-2].AddPiece(piece.BlackPawn)
+	b.Squares[square.SquaresPerRow-2][5].AddPiece(piece.BlackPawn)
 
 	// White Pieces
 	for row := 4; row < 7; row++ {
 		for col := 4; col < 7; col++ {
-			b.Squares[row][col].AddPiece(piece.Pawn, raylib.White, raylib.Black)
+			b.Squares[row][col].AddPiece(piece.WhitePawn)
 		}
 	}
 
-	b.Squares[5][5].AddPiece(piece.King, raylib.White, raylib.Black)
-	b.Squares[5][3].AddPiece(piece.Pawn, raylib.White, raylib.Black)
-	b.Squares[3][5].AddPiece(piece.Pawn, raylib.White, raylib.Black)
-	b.Squares[5][square.SquaresPerRow-4].AddPiece(piece.Pawn, raylib.White, raylib.Black)
-	b.Squares[square.SquaresPerRow-4][5].AddPiece(piece.Pawn, raylib.White, raylib.Black)
+	b.Squares[5][5].AddPiece(piece.King | piece.WhitePawn)
+	b.Squares[5][3].AddPiece(piece.WhitePawn)
+	b.Squares[3][5].AddPiece(piece.WhitePawn)
+	b.Squares[5][square.SquaresPerRow-4].AddPiece(piece.WhitePawn)
+	b.Squares[square.SquaresPerRow-4][5].AddPiece(piece.WhitePawn)
 
 	return b
 }

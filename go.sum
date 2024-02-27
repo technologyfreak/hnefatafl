@@ -1,5 +1,3 @@
-github.com/eapache/queue/v2 v2.0.0-20230407133247-75960ed334e4 h1:8EXxF+tCLqaVk8AOC29zl2mnhQjwyLxxOTuhUazWRsg=
-github.com/eapache/queue/v2 v2.0.0-20230407133247-75960ed334e4/go.mod h1:I5sHm0Y0T1u5YjlyqC5GVArM7aNZRUYtTjmJ8mPJFds=
 github.com/ebitengine/purego v0.6.0-alpha.1.0.20231122024802-192c5e846faa h1:Ik7QikRgeH+bFOfAcMpttCbs6XxWXxCLXMm4awxtOXk=
 github.com/ebitengine/purego v0.6.0-alpha.1.0.20231122024802-192c5e846faa/go.mod h1:ah1In8AOtksoNK6yk5z1HTJeUkC1Ez4Wk2idgGslMwQ=
 github.com/gen2brain/raylib-go/raylib v0.0.0-20240125111008-83d871a38f28 h1:e0HOaKlvsdC0ZtfWbEaaWAxYTSxUZoCAFS36jLfsVRA=
