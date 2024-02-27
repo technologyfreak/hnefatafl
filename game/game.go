@@ -37,11 +37,11 @@ type CoordPair struct {
 }
 
 type Game struct {
-	ScreenWidth   int32
-	ScreenHeight  int32
-	vScreenHeight int32
-	MsgX          int32
-	MsgY          int32
+	ScreenWidth  int32
+	ScreenHeight int32
+	BoardHeight  int32
+	MsgX         int32
+	MsgY         int32
 
 	BlackPawns uint8
 	WhitePawns uint8
@@ -65,7 +65,7 @@ type Game struct {
 func (g *Game) Init() {
 	g.ScreenWidth = screenWidth
 	g.ScreenHeight = screenHeight
-	g.vScreenHeight = screenWidth
+	g.BoardHeight = screenWidth
 
 	g.BlackPawns = totalBlackPawns
 	g.WhitePawns = totalWhitePawns
