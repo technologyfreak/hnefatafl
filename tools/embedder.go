@@ -17,7 +17,7 @@ func EmbedResource(fileName, resourceName string) (n int) {
 		log.Fatalln(err)
 	}
 
-	n, err = resourceFile.WriteString(fmt.Sprintf("var %v = %#v", resourceName, newResource))
+	n, err = resourceFile.WriteString(fmt.Sprintf("\nvar %v = %#v", resourceName, newResource))
 	if err != nil {
 		log.Fatalln(err)
 	}
