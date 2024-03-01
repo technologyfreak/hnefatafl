@@ -73,15 +73,7 @@ func (g *Game) Init() {
 	g.ScreenHeight = screenHeight
 	g.BoardHeight = screenWidth
 
-	g.BlackPawns = totalBlackPawns
-	g.WhitePawns = totalWhitePawns
-	g.MovePhase = 0
-
-	g.BlacksTurn = true
-	g.ShouldHighlightSelected = false
-	g.Win = false
-
-	g.Board = board.NewBoard()
+	g.Restart()
 
 	raylib.InitWindow(int32(g.ScreenWidth), int32(g.ScreenHeight), "Hnefatafl")
 	defer raylib.CloseWindow()
@@ -495,6 +487,18 @@ func (g *Game) UpdateSouthernNeighbor() {
 	}
 }
 
+func (g *Game) Restart() {
+	g.BlackPawns = totalBlackPawns
+	g.WhitePawns = totalWhitePawns
+	g.MovePhase = 0
+
+	g.BlacksTurn = true
+	g.ShouldHighlightSelected = false
+	g.Win = false
+
+	g.Board = board.NewBoard()
+}
+
 func (g *Game) Update() {
 	if raylib.IsMouseButtonPressed(raylib.MouseLeftButton) {
 		if g.Win {
@@ -503,7 +507,7 @@ func (g *Game) Update() {
 
 			if (x >= g.RestartBtnX && x < (g.RestartBtnX+g.RestartBtnWidth-1)) &&
 				(y >= g.RestartBtnY && y < (g.RestartBtnY+fontSize-1)) {
-				g.Init()
+				g.Restart()
 			} else {
 				return
 			}
