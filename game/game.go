@@ -534,7 +534,7 @@ func (g *Game) Update() {
 		}
 	}
 
-	if g.KingHasReachedACorner() {
+	if g.KingHasReachedACorner() || g.BlackPawns == 0 || g.WhitePawns == 0 {
 		g.Win = true
 	}
 }
@@ -588,14 +588,14 @@ func (g *Game) DrawWinMsg() {
 
 	winMsg := BlackWinsMsg
 
-	if !g.BlacksTurn || g.KingHasReachedACorner() {
+	if g.KingHasReachedACorner() || g.BlackPawns == 0 {
 		winMsg = WhiteWinsMsg
 	}
 
 	raylib.DrawText(winMsg, g.WinMsgX+1, g.MsgY+1, fontSize, raylib.Gray)
 	raylib.DrawText(winMsg, g.WinMsgX-1, g.MsgY-1, fontSize, raylib.Gray)
 
-	if !g.BlacksTurn || g.KingHasReachedACorner() {
+	if g.KingHasReachedACorner() || g.BlackPawns == 0 {
 		raylib.DrawText(winMsg, g.WinMsgX, g.MsgY, fontSize, raylib.White)
 	} else {
 		raylib.DrawText(winMsg, g.WinMsgX, g.MsgY, fontSize, raylib.Black)
