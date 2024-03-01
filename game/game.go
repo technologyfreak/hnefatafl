@@ -15,6 +15,8 @@ const (
 	totalWhitePawns = 12
 	fontSize        = 25
 	targetFPS       = 60
+	leftPadding     = 10
+	rightPadding    = 20
 )
 
 type NeigborKind uint8
@@ -37,6 +39,14 @@ const (
 type CoordPair struct {
 	X int32
 	Y int32
+}
+
+func padLeft(x int32) int32 {
+	return x - leftPadding
+}
+
+func padRight(y int32) int32 {
+	return y + rightPadding
 }
 
 type Game struct {
@@ -508,7 +518,7 @@ func (g *Game) Update() {
 			x := raylib.GetMouseX()
 			y := raylib.GetMouseY()
 
-			if (x >= g.RestartBtnX && x < (g.RestartBtnX+g.RestartBtnWidth-1)) &&
+			if (x >= padLeft(g.RestartBtnX) && x < padRight(g.RestartBtnX+g.RestartBtnWidth-1)) &&
 				(y >= g.RestartBtnY && y < (g.RestartBtnY+fontSize-1)) {
 				g.Restart()
 			} else {
@@ -565,7 +575,7 @@ func (g *Game) DrawBoard() {
 }
 
 func (g *Game) DrawTurnMsg() {
-	raylib.DrawRectangle(g.TurnMsgX, g.MsgY, g.ScreenWidth, fontSize, raylib.Beige)
+	raylib.DrawRectangle(padLeft(g.TurnMsgX), g.MsgY, padRight(g.ScreenWidth), fontSize, raylib.Beige)
 
 	turnMsg := BlacksTurnMsg
 	turnColor := raylib.Black
@@ -581,7 +591,7 @@ func (g *Game) DrawTurnMsg() {
 }
 
 func (g *Game) DrawWinMsg() {
-	raylib.DrawRectangle(g.TurnMsgX, g.MsgY, g.ScreenWidth, fontSize, raylib.Beige)
+	raylib.DrawRectangle(padLeft(g.TurnMsgX), g.MsgY, padRight(g.ScreenWidth), fontSize, raylib.Beige)
 
 	winMsg := BlackWinsMsg
 	winColor := raylib.Black
@@ -597,7 +607,7 @@ func (g *Game) DrawWinMsg() {
 }
 
 func (g *Game) DrawRestartBtn() {
-	raylib.DrawRectangle(g.RestartBtnX, g.RestartBtnY, g.RestartBtnWidth, fontSize, raylib.DarkPurple)
+	raylib.DrawRectangle(padLeft(g.RestartBtnX), g.RestartBtnY, padRight(g.RestartBtnWidth), fontSize, raylib.DarkPurple)
 	raylib.DrawText(RestartBtnValue, g.RestartBtnX+1, g.RestartBtnY+1, fontSize, raylib.Gray)
 	raylib.DrawText(RestartBtnValue, g.RestartBtnX-1, g.RestartBtnY-1, fontSize, raylib.Gray)
 	raylib.DrawText(RestartBtnValue, g.RestartBtnX, g.RestartBtnY, fontSize, raylib.Gold)
