@@ -27,8 +27,11 @@ const (
 )
 
 const (
-	BlacksTurnMsg = "Black's Turn"
-	WhitesTurnMsg = "Whites's Turn"
+	BlacksTurnMsg   = "Black's Turn"
+	WhitesTurnMsg   = "Whites's Turn"
+	BlackWinsMsg    = "Black Wins!"
+	WhiteWinsMsg    = "White Wins!"
+	RestartBtnValue = "Click Here To Restart"
 )
 
 type CoordPair struct {
@@ -37,11 +40,14 @@ type CoordPair struct {
 }
 
 type Game struct {
-	ScreenWidth  int32
-	ScreenHeight int32
-	BoardHeight  int32
-	MsgX         int32
-	MsgY         int32
+	ScreenWidth     int32
+	ScreenHeight    int32
+	BoardHeight     int32
+	MsgX            int32
+	MsgY            int32
+	RestartBtnWidth int32
+	RestartBtnX     int32
+	RestartBtnY     int32
 
 	BlackPawns uint8
 	WhitePawns uint8
@@ -84,6 +90,10 @@ func (g *Game) Init() {
 
 	g.MsgX = g.ScreenWidth/2 - raylib.MeasureText("XXXXX's Turn", fontSize)/2
 	g.MsgY = g.ScreenHeight - fontSize
+
+	g.RestartBtnWidth = raylib.MeasureText(RestartBtnValue, fontSize)
+	g.RestartBtnX = g.ScreenWidth/2 - g.RestartBtnWidth/2
+	g.RestartBtnY = g.ScreenHeight/2 - g.RestartBtnWidth/2
 
 	img := raylib.LoadImageFromMemory(".png", resources.BoardBackground, int32(len(resources.BoardBackground)))
 	g.BoardBackground = raylib.LoadTextureFromImage(img)
@@ -487,6 +497,18 @@ func (g *Game) UpdateSouthernNeighbor() {
 
 func (g *Game) Update() {
 	if raylib.IsMouseButtonPressed(raylib.MouseLeftButton) {
+		if g.Win {
+			x := raylib.GetMouseX()
+			y := raylib.GetMouseY()
+
+			if (x >= g.RestartBtnX && x < (g.RestartBtnX+g.RestartBtnWidth-1)) &&
+				(y >= g.RestartBtnY && y < (g.RestartBtnY+fontSize-1)) {
+				g.Init()
+			} else {
+				return
+			}
+		}
+
 		g.SelectSquare()
 		g.ValidateMove()
 
@@ -554,6 +576,32 @@ func (g *Game) DrawTurnMsg() {
 	}
 }
 
+func (g *Game) DrawWinMsg() {
+	raylib.DrawRectangle(g.MsgX, g.MsgY, g.ScreenWidth, fontSize, raylib.Beige)
+
+	winMsg := BlackWinsMsg
+
+	if !g.BlacksTurn || g.KingHasReachedACorner() {
+		winMsg = WhiteWinsMsg
+	}
+
+	raylib.DrawText(winMsg, g.MsgX+1, g.MsgY+1, fontSize, raylib.Gray)
+	raylib.DrawText(winMsg, g.MsgX-1, g.MsgY-1, fontSize, raylib.Gray)
+
+	if !g.BlacksTurn || g.KingHasReachedACorner() {
+		raylib.DrawText(winMsg, g.MsgX, g.MsgY, fontSize, raylib.White)
+	} else {
+		raylib.DrawText(winMsg, g.MsgX, g.MsgY, fontSize, raylib.Black)
+	}
+}
+
+func (g *Game) DrawRestartBtn() {
+	raylib.DrawRectangle(g.RestartBtnX, g.RestartBtnY, g.RestartBtnWidth, fontSize, raylib.DarkPurple)
+	raylib.DrawText(RestartBtnValue, g.RestartBtnX+1, g.RestartBtnY+1, fontSize, raylib.Gray)
+	raylib.DrawText(RestartBtnValue, g.RestartBtnX-1, g.RestartBtnY-1, fontSize, raylib.Gray)
+	raylib.DrawText(RestartBtnValue, g.RestartBtnX, g.RestartBtnY, fontSize, raylib.Gold)
+}
+
 func (g *Game) Draw() {
 	raylib.BeginDrawing()
 
@@ -561,6 +609,12 @@ func (g *Game) Draw() {
 	if g.ShouldHighlightSelected {
 		raylib.DrawRectangleLinesEx(raylib.NewRectangle(float32(g.Selected.X), float32(g.Selected.Y), square.SquareSize, square.SquareSize), 1.5, raylib.Green)
 	}
-	g.DrawTurnMsg()
+
+	if g.Win {
+		g.DrawWinMsg()
+		g.DrawRestartBtn()
+	} else {
+		g.DrawTurnMsg()
+	}
 	raylib.EndDrawing()
 }
