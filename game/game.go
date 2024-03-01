@@ -43,8 +43,9 @@ type Game struct {
 	ScreenWidth     int32
 	ScreenHeight    int32
 	BoardHeight     int32
-	MsgX            int32
+	TurnMsgX        int32
 	MsgY            int32
+	WinMsgX         int32
 	RestartBtnWidth int32
 	RestartBtnX     int32
 	RestartBtnY     int32
@@ -80,8 +81,10 @@ func (g *Game) Init() {
 
 	raylib.ClearBackground(raylib.Beige)
 
-	g.MsgX = g.ScreenWidth/2 - raylib.MeasureText("XXXXX's Turn", fontSize)/2
+	g.TurnMsgX = g.ScreenWidth/2 - raylib.MeasureText("XXXXX's Turn", fontSize)/2
 	g.MsgY = g.ScreenHeight - fontSize
+
+	g.WinMsgX = g.ScreenWidth/2 - raylib.MeasureText("XXXXX Wins!", fontSize)/2
 
 	g.RestartBtnWidth = raylib.MeasureText(RestartBtnValue, fontSize)
 	g.RestartBtnX = g.ScreenWidth/2 - g.RestartBtnWidth/2
@@ -562,7 +565,7 @@ func (g *Game) DrawBoard() {
 }
 
 func (g *Game) DrawTurnMsg() {
-	raylib.DrawRectangle(g.MsgX, g.MsgY, g.ScreenWidth, fontSize, raylib.Beige)
+	raylib.DrawRectangle(g.TurnMsgX, g.MsgY, g.ScreenWidth, fontSize, raylib.Beige)
 
 	turnMsg := BlacksTurnMsg
 
@@ -570,18 +573,18 @@ func (g *Game) DrawTurnMsg() {
 		turnMsg = WhitesTurnMsg
 	}
 
-	raylib.DrawText(turnMsg, g.MsgX+1, g.MsgY+1, fontSize, raylib.Gray)
-	raylib.DrawText(turnMsg, g.MsgX-1, g.MsgY-1, fontSize, raylib.Gray)
+	raylib.DrawText(turnMsg, g.TurnMsgX+1, g.MsgY+1, fontSize, raylib.Gray)
+	raylib.DrawText(turnMsg, g.TurnMsgX-1, g.MsgY-1, fontSize, raylib.Gray)
 
 	if !g.BlacksTurn {
-		raylib.DrawText(turnMsg, g.MsgX, g.MsgY, fontSize, raylib.White)
+		raylib.DrawText(turnMsg, g.TurnMsgX, g.MsgY, fontSize, raylib.White)
 	} else {
-		raylib.DrawText(turnMsg, g.MsgX, g.MsgY, fontSize, raylib.Black)
+		raylib.DrawText(turnMsg, g.TurnMsgX, g.MsgY, fontSize, raylib.Black)
 	}
 }
 
 func (g *Game) DrawWinMsg() {
-	raylib.DrawRectangle(g.MsgX, g.MsgY, g.ScreenWidth, fontSize, raylib.Beige)
+	raylib.DrawRectangle(g.TurnMsgX, g.MsgY, g.ScreenWidth, fontSize, raylib.Beige)
 
 	winMsg := BlackWinsMsg
 
@@ -589,13 +592,13 @@ func (g *Game) DrawWinMsg() {
 		winMsg = WhiteWinsMsg
 	}
 
-	raylib.DrawText(winMsg, g.MsgX+1, g.MsgY+1, fontSize, raylib.Gray)
-	raylib.DrawText(winMsg, g.MsgX-1, g.MsgY-1, fontSize, raylib.Gray)
+	raylib.DrawText(winMsg, g.WinMsgX+1, g.MsgY+1, fontSize, raylib.Gray)
+	raylib.DrawText(winMsg, g.WinMsgX-1, g.MsgY-1, fontSize, raylib.Gray)
 
 	if !g.BlacksTurn || g.KingHasReachedACorner() {
-		raylib.DrawText(winMsg, g.MsgX, g.MsgY, fontSize, raylib.White)
+		raylib.DrawText(winMsg, g.WinMsgX, g.MsgY, fontSize, raylib.White)
 	} else {
-		raylib.DrawText(winMsg, g.MsgX, g.MsgY, fontSize, raylib.Black)
+		raylib.DrawText(winMsg, g.WinMsgX, g.MsgY, fontSize, raylib.Black)
 	}
 }
 
