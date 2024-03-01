@@ -568,38 +568,32 @@ func (g *Game) DrawTurnMsg() {
 	raylib.DrawRectangle(g.TurnMsgX, g.MsgY, g.ScreenWidth, fontSize, raylib.Beige)
 
 	turnMsg := BlacksTurnMsg
+	turnColor := raylib.Black
 
 	if !g.BlacksTurn {
 		turnMsg = WhitesTurnMsg
+		turnColor = raylib.White
 	}
 
 	raylib.DrawText(turnMsg, g.TurnMsgX+1, g.MsgY+1, fontSize, raylib.Gray)
 	raylib.DrawText(turnMsg, g.TurnMsgX-1, g.MsgY-1, fontSize, raylib.Gray)
-
-	if !g.BlacksTurn {
-		raylib.DrawText(turnMsg, g.TurnMsgX, g.MsgY, fontSize, raylib.White)
-	} else {
-		raylib.DrawText(turnMsg, g.TurnMsgX, g.MsgY, fontSize, raylib.Black)
-	}
+	raylib.DrawText(turnMsg, g.TurnMsgX, g.MsgY, fontSize, turnColor)
 }
 
 func (g *Game) DrawWinMsg() {
 	raylib.DrawRectangle(g.TurnMsgX, g.MsgY, g.ScreenWidth, fontSize, raylib.Beige)
 
 	winMsg := BlackWinsMsg
+	winColor := raylib.Black
 
 	if g.KingHasReachedACorner() || g.BlackPawns == 0 {
 		winMsg = WhiteWinsMsg
+		winColor = raylib.White
 	}
 
 	raylib.DrawText(winMsg, g.WinMsgX+1, g.MsgY+1, fontSize, raylib.Gray)
 	raylib.DrawText(winMsg, g.WinMsgX-1, g.MsgY-1, fontSize, raylib.Gray)
-
-	if g.KingHasReachedACorner() || g.BlackPawns == 0 {
-		raylib.DrawText(winMsg, g.WinMsgX, g.MsgY, fontSize, raylib.White)
-	} else {
-		raylib.DrawText(winMsg, g.WinMsgX, g.MsgY, fontSize, raylib.Black)
-	}
+	raylib.DrawText(winMsg, g.WinMsgX, g.MsgY, fontSize, winColor)
 }
 
 func (g *Game) DrawRestartBtn() {
