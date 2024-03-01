@@ -1,4 +1,4 @@
-package squares
+package square
 
 import (
 	raylib "github.com/gen2brain/raylib-go/raylib"

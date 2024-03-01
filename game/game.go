@@ -4,7 +4,7 @@ import (
 	raylib "github.com/gen2brain/raylib-go/raylib"
 	board "github.com/technologyfreak/hnefatafl/board"
 	piece "github.com/technologyfreak/hnefatafl/piece"
-	"github.com/technologyfreak/hnefatafl/resources"
+	resources "github.com/technologyfreak/hnefatafl/resources"
 	square "github.com/technologyfreak/hnefatafl/square"
 )
 
