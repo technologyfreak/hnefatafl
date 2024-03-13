@@ -89,8 +89,6 @@ func (g *Game) Init() {
 	raylib.InitWindow(int32(g.ScreenWidth), int32(g.ScreenHeight), "Hnefatafl")
 	defer raylib.CloseWindow()
 
-	raylib.ClearBackground(raylib.Beige)
-
 	g.TurnMsgX = g.ScreenWidth/2 - raylib.MeasureText("XXXXX's Turn", fontSize)/2
 	g.MsgY = g.ScreenHeight - fontSize
 
@@ -615,6 +613,7 @@ func (g *Game) DrawRestartBtn() {
 
 func (g *Game) Draw() {
 	raylib.BeginDrawing()
+	raylib.ClearBackground(raylib.Beige)
 
 	g.DrawBoard()
 	if g.ShouldHighlightSelected {
