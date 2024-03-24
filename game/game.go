@@ -68,7 +68,7 @@ type Game struct {
 	ShouldHighlightSelected bool
 	Win                     bool
 
-	Board board.Board
+	board.Board
 
 	Selected     *square.Square
 	PrevSelected *square.Square
@@ -355,7 +355,7 @@ func (g *Game) GetEasternNeighbor(wPiece *square.Square) (NeigborKind, *square.S
 	return Edge, nil
 }
 
-func (g *Game) GetNortherNeighbor(wPiece *square.Square) (NeigborKind, *square.Square) {
+func (g *Game) GetNorthernNeighbor(wPiece *square.Square) (NeigborKind, *square.Square) {
 	if wPiece == nil {
 		return Edge, nil
 	}
@@ -378,7 +378,7 @@ func (g *Game) GetNortherNeighbor(wPiece *square.Square) (NeigborKind, *square.S
 	return Edge, nil
 }
 
-func (g *Game) GetSouternNeighbor(wPiece *square.Square) (NeigborKind, *square.Square) {
+func (g *Game) GetSouthernNeighbor(wPiece *square.Square) (NeigborKind, *square.Square) {
 	if wPiece == nil {
 		return Edge, nil
 	}
@@ -408,8 +408,8 @@ func (g *Game) IsSandwiched(wPiece *square.Square) bool {
 
 	westKind, westPiece := g.GetWesternNeighbor(wPiece)
 	eastKind, eastPiece := g.GetEasternNeighbor(wPiece)
-	northKind, northPiece := g.GetNortherNeighbor(wPiece)
-	southKind, southPiece := g.GetSouternNeighbor(wPiece)
+	northKind, northPiece := g.GetNorthernNeighbor(wPiece)
+	southKind, southPiece := g.GetSouthernNeighbor(wPiece)
 
 	TryIsCenter := func(s *square.Square) bool {
 		return s != nil && s.IsCenter()
@@ -467,7 +467,7 @@ func (g *Game) UpdateEasternNeighbor() {
 }
 
 func (g *Game) UpdateNorthernNeighbor() {
-	northKind, northSquare := g.GetNortherNeighbor(g.Selected)
+	northKind, northSquare := g.GetNorthernNeighbor(g.Selected)
 
 	if northKind > 0 && g.IsSandwiched(northSquare) {
 		if northSquare.Piece&piece.King == piece.King {
@@ -483,7 +483,7 @@ func (g *Game) UpdateNorthernNeighbor() {
 }
 
 func (g *Game) UpdateSouthernNeighbor() {
-	southKind, southSquare := g.GetSouternNeighbor(g.Selected)
+	southKind, southSquare := g.GetSouthernNeighbor(g.Selected)
 
 	if southKind > 0 && g.IsSandwiched(southSquare) {
 		if southSquare.Piece&piece.King == piece.King {
