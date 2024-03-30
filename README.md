@@ -1,0 +1,1 @@
+A simple implementation of hnefatafl (a.k.a. "viking" chess). Currently only works by taking turns with one mouse on a single computer. May try to add server for proper multiplayer later but for now this was just a fun project to attempt game dev, better learn go, and play around with raylib.
